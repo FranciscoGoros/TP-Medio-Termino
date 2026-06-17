@@ -1,5 +1,5 @@
 import Menu from "./scenes/menu.js";
-
+import Level1 from "./scenes/Level1";
 const config = {
   type: Phaser.AUTO,
   width: 480,
@@ -22,7 +22,7 @@ const config = {
     },
   },
 
-  scene: [Menu],
+  scene: [Menu, Level1],
 };
 
 window.game = new Phaser.Game(config);
