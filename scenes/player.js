@@ -10,7 +10,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.setMaxVelocity(600, 900);
         this.setCollideWorldBounds(true);
         this.vida = 1;
-        this.velocidad = 100;
+        this.velocidad = 160;
 
         this.inventario = [];
 

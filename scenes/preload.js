@@ -2,20 +2,20 @@ const Phaser = window.Phaser;
 
 export default class Preloader extends Phaser.Scene {
   constructor() {
-    super("Preloader");
+    super("preload");
   }
 
   preload() {
-    this.load.tilemapTiledJSON("map_level1", "public/assets/tilemap/map.json");
-    this.load.tilemapTiledJSON("map_level2", "public/assets/tilemap/map2.json");
+    this.load.tilemapTiledJSON("map_level1", "public/assets/tilemap/map_level1.json");
+    this.load.tilemapTiledJSON("map_level2", "public/assets/tilemap/map_level2.json");
 
     this.load.image("tileset", "public/assets/Texturetile.png");
-    this.load.image("NPC1", "public/assets/star.png");
-    this.load.image("NPC2", "public/assets/door.png");
-    this.load.image("NPC3", "public/assets/ruby.png");
-    this.load.image("water", "public/assets/gold.png");
-    this.load.image("dude", "./public/assets/Personaje.png");
-    this.load.image("enemy", "./public/assets/Enemigo.png");
+    this.load.image("NPC1", "public/assets/playersprite.png");
+    this.load.image("NPC2", "public/assets/playersprite.png");
+    this.load.image("NPC3", "public/assets/playersprite.png");
+    this.load.image("water", "public/assets/playersprite.png");
+    this.load.image("player", "public/assets/playersprite.png");
+    this.load.image("enemy", "public/assets/Enemigo.png");
   }
 
   create() {

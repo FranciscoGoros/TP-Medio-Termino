@@ -1,9 +1,11 @@
 import Menu from "./scenes/menu.js";
-import Level1 from "./scenes/Level1";
+import Level1 from "./scenes/Level1.js";
+import preload from "./scenes/preload.js";
+
 const config = {
   type: Phaser.AUTO,
-  width: 480,
-  height: 480,
+  width: 720,
+  height: 720,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -22,7 +24,7 @@ const config = {
     },
   },
 
-  scene: [Menu, Level1],
+  scene: [preload, Menu, Level1],
 };
 
 window.game = new Phaser.Game(config);

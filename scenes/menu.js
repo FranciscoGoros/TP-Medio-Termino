@@ -6,7 +6,6 @@ export default class Menu extends Phaser.Scene {
 
   init() {
 
-
   }
 
   create() {
@@ -18,7 +17,7 @@ export default class Menu extends Phaser.Scene {
 
     rectangle_button.setInteractive();
     rectangle_button.on("pointerdown", () => {
-      this.scene.start("game");
+      this.scene.start("Level1");
     });
   }
 }
