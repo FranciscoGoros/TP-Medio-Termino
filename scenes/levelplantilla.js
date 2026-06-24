@@ -59,7 +59,7 @@ export default class NivelBase extends Phaser.Scene {
     this.enemigosGroup = this.physics.add.group();
     this.water = this.physics.add.group();
     this.door = this.physics.add.group();
-
+    this.check = 0
     objectsLayer.objects.forEach((objData) => {
       const { x = 0, y = 0, name, type } = objData;
       switch (type) {
@@ -105,6 +105,13 @@ export default class NivelBase extends Phaser.Scene {
   }
 
   update() {
+
+      if (this.check == 3) {
+      this.scene.restart();
+
+    }
+
+
     if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
       console.log("Reiniciando o acción R...");
     }
@@ -170,7 +177,7 @@ export default class NivelBase extends Phaser.Scene {
 
     if (this.pushedToWaterCount >= 4) {
       this.registry.set('score', this.score);
-      this.scene.start("SiguienteNivel");
+      this.scene.start("Level2");
     }
   }
 
@@ -229,6 +236,7 @@ export default class NivelBase extends Phaser.Scene {
           const npcBounds = candidateNpc.getBounds();
           if (Phaser.Geom.Intersects.RectangleToRectangle(npcBounds, rayBounds)) {
             candidateNpc.destroy();
+            this.check += 1
           }
         });
       });
@@ -245,7 +253,7 @@ export default class NivelBase extends Phaser.Scene {
     if (this.inventario.items.length >= 5) {
       door.disableBody(true, true); 
       this.registry.set('score', this.score);
-      this.scene.start("SiguienteNivel"); 
+      this.scene.start("Level2"); 
     }
   }
 

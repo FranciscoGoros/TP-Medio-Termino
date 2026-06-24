@@ -1,12 +1,12 @@
 import NivelBase from "./levelplantilla.js";
 
-export default class Level1 extends NivelBase {
+export default class Level2 extends NivelBase {
   constructor() {
-    super("Level1");
+    super("Level2");
   }
 
   create() {
-    this.crearNivel("map_level1");
+    this.crearNivel("map_level2");
   }
 
   enterdoor(player, door) {
