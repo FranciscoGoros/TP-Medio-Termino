@@ -18,10 +18,10 @@ export default class NivelBase extends Phaser.Scene {
   crearNivel(mapKey) {
     const map = this.make.tilemap({ key: mapKey });
     const tileset = map.addTilesetImage("Texturetile", "tileset");
-    const belowLayer = map.createLayer("Fondo", tileset, 0, 0);
-    const waterLayer = map.createLayer("Agua", tileset, 0, 0);
+    const belowLayer = map.createLayer("Fondo", tileset, 0, 0).setDepth(0);
+    const waterLayer = map.createLayer("Agua", tileset, 0, 0).setDepth(0);
     this.waterLayer = waterLayer;
-    const platformLayer = map.createLayer("Paredes", tileset, 0, 0);
+    const platformLayer = map.createLayer("Paredes", tileset, 0, 0).setDepth(2);
     const objectsLayer = map.getObjectLayer("Objetos");
 
     const spawnPoint = map.findObject("Objetos", (obj) => obj.name === "player");
@@ -64,21 +64,21 @@ export default class NivelBase extends Phaser.Scene {
       const { x = 0, y = 0, name, type } = objData;
       switch (type) {
         case "NPC1": {
-          const npc = this.NPC1.create(x, y, "NPC1");
+          const npc = this.NPC1.create(x, y, "NPC1").setDepth(2);
           this.setupPushableNpc(npc);
           break;
         }
         case "NPC2": {
-          const npc = this.NPC2.create(x, y, "NPC2");
+          const npc = this.NPC2.create(x, y, "NPC2").setDepth(2);
           this.setupPushableNpc(npc);
           break;
         }
         case "NPC3": {
-          const npc = this.NPC3.create(x, y, "NPC3");
+          const npc = this.NPC3.create(x, y, "NPC3").setDepth(2);
           this.setupPushableNpc(npc);
           break;
         }
-        case "water": this.water.create(x, y, "water"); break;
+        case "water": this.water.create(x, y, "water").setDepth(1); break;
         case "Enemy": 
           const enemigonuevo = new Enemy(this, x, y, "enemy");
           this.enemigosGroup.add(enemigonuevo);
@@ -95,6 +95,13 @@ export default class NivelBase extends Phaser.Scene {
     this.physics.add.collider(this.player, this.NPC3, this.handleNpcPush, null, this);
     this.physics.add.collider(this.player, this.NPC2, this.handleNpcPush, null, this);
     this.physics.add.collider(this.player, this.door, this.enterdoor, null, this);
+
+    this.npcAlertGroupIndex = 0;
+    this.time.addEvent({
+      delay: 15000,
+      callback: () => this.spawnNpcAlert(),
+      loop: true,
+    });
   }
 
   update() {
@@ -119,7 +126,7 @@ export default class NivelBase extends Phaser.Scene {
 
     npc.body.setCollideWorldBounds(true);
     npc.body.setBounce(0, 0);
-    npc.body.setDrag(800, 800);
+    npc.body.setDrag(900, 900);
     npc.body.setMaxVelocity(300, 300);
     npc.body.setImmovable(false);
     npc.pushable = true;
@@ -177,6 +184,60 @@ export default class NivelBase extends Phaser.Scene {
       if (tile) {
         this.npcEnterWater(npc);
       }
+    });
+  }
+
+  spawnNpcAlert() {
+    const groups = [this.NPC1, this.NPC2, this.NPC3].filter(
+      (group) => group && group.getChildren().length > 0
+    );
+
+    if (groups.length === 0) {
+      return;
+    }
+
+    const selectedGroup = groups[this.npcAlertGroupIndex % groups.length];
+    this.npcAlertGroupIndex = (this.npcAlertGroupIndex + 1) % groups.length;
+
+    const npcs = selectedGroup.getChildren().filter((npc) => npc && npc.active);
+    if (npcs.length === 0) {
+      return;
+    }
+
+    const npc = Phaser.Math.RND.pick(npcs);
+    const alert = this.add.image(npc.x, npc.y, "alerta").setDepth(1);
+    alert.setScale(2);
+
+    this.time.delayedCall(5000, () => {
+      if (alert && alert.active) {
+        alert.destroy();
+      }
+
+      const ray = this.add.image(alert.x, alert.y - 355, "ray").setDepth(2);
+      ray.setScale(0.8);
+      const rayBounds = ray.getBounds();
+
+      const groupsToCheck = [this.NPC1, this.NPC2, this.NPC3];
+      groupsToCheck.forEach((group) => {
+        if (!group) {
+          return;
+        }
+        group.getChildren().forEach((candidateNpc) => {
+          if (!candidateNpc || !candidateNpc.active) {
+            return;
+          }
+          const npcBounds = candidateNpc.getBounds();
+          if (Phaser.Geom.Intersects.RectangleToRectangle(npcBounds, rayBounds)) {
+            candidateNpc.destroy();
+          }
+        });
+      });
+
+      this.time.delayedCall(2000, () => {
+        if (ray && ray.active) {
+          ray.destroy();
+        }
+      });
     });
   }
 

@@ -7,9 +7,6 @@ export default class Level1 extends NivelBase {
 
   create() {
     this.crearNivel("map_level1");
-    const camera = this.cameras.main;
-    camera.startFollow(this.player);
-    camera.zoom = 1;
   }
 
   enterdoor(player, door) {
