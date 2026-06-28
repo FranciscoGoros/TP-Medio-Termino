@@ -1,8 +1,41 @@
 import Player from "./player.js";
 import inventario from "./Inventario.js";
 import { Interfaz } from "./Interfaz.js";
+import { setupPointsSystem } from "./pointsSystem.js";
 
 const Phaser = window.Phaser;
+
+class Enemy extends Phaser.Physics.Arcade.Sprite {
+  constructor(scene, x, y, texture) {
+    super(scene, x, y, texture);
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+
+    this.setScale(1, 1);
+    this.setDepth(2);
+    this.body.setAllowGravity(false);
+    this.body.setCollideWorldBounds(true);
+    this.body.setBounce(0, 0);
+    this.body.setImmovable(true);
+    this.speed = 80;
+    this.direction = 1;
+    this.setVelocityX(this.speed * this.direction);
+    this.flipX = false;
+
+    this.moveEvent = scene.time.addEvent({
+      delay: 2000,
+      callback: this.toggleDirection,
+      callbackScope: this,
+      loop: true,
+    });
+  }
+
+  toggleDirection() {
+    this.direction *= -1;
+    this.setVelocityX(this.speed * this.direction);
+    this.setFlipX(this.direction < 0);
+  }
+}
 
 export default class NivelBase extends Phaser.Scene {
   constructor(key) {
@@ -10,7 +43,9 @@ export default class NivelBase extends Phaser.Scene {
   }
 
   init(data) {
-    this.score = data?.score || 0;
+    this.points = data?.points || 0;
+    this.score = this.points;
+    this.savedPeopleTotal = data?.savedPeopleTotal || 0;
     this.pushedToWaterCount = 0;
     this.timeRemaining = 90;
   }
@@ -20,6 +55,7 @@ export default class NivelBase extends Phaser.Scene {
     const tileset = map.addTilesetImage("Texturetile", "tileset");
     const belowLayer = map.createLayer("Fondo", tileset, 0, 0).setDepth(0);
     const waterLayer = map.createLayer("Agua", tileset, 0, 0).setDepth(0);
+    const lavalayer = map.createLayer("Lava", tileset, 0, 0).setDepth(0);
     this.waterLayer = waterLayer;
     const platformLayer = map.createLayer("Paredes", tileset, 0, 0).setDepth(2);
     const objectsLayer = map.getObjectLayer("Objetos");
@@ -28,11 +64,14 @@ export default class NivelBase extends Phaser.Scene {
     
     this.player = new Player(this, spawnPoint.x, spawnPoint.y, "player");
     this.player.setScale(1, 1);
+    this.player.vida = 3;
+    this.player.lastEnemyHitAt = 0;
     
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
     this.inventario = new inventario();
     this.inventario.items = [];
+    setupPointsSystem(this);
     Interfaz(this);
 
     this.time.addEvent({
@@ -58,6 +97,9 @@ export default class NivelBase extends Phaser.Scene {
     this.stars = this.physics.add.group();
     this.enemigosGroup = this.physics.add.group();
     this.water = this.physics.add.group();
+    this.lava = this.physics.add.group();
+    this.itemPuntos = this.physics.add.group();
+    this.itemDaño = this.physics.add.group();
     this.door = this.physics.add.group();
     this.check = 0
     objectsLayer.objects.forEach((objData) => {
@@ -79,7 +121,24 @@ export default class NivelBase extends Phaser.Scene {
           break;
         }
         case "water": this.water.create(x, y, "water").setDepth(1); break;
-        case "Enemy": 
+        case "lava": this.lava.create(x, y, "lava").setDepth(1); break;
+        case "itemPuntos": {
+          const itemPuntos = this.itemPuntos.create(x, y, "hidrante").setDepth(2);
+          this.physics.add.existing(itemPuntos);
+          itemPuntos.body.setAllowGravity(false);
+          itemPuntos.body.setImmovable(true);
+          this.itemPuntos.add(itemPuntos);
+          break;
+        }
+        case "itemDaño": {
+          const itemDaño = this.itemDaño.create(x, y, "ceniza").setDepth(2);
+          this.physics.add.existing(itemDaño);
+          itemDaño.body.setAllowGravity(false);
+          itemDaño.body.setImmovable(true);
+          this.itemDaño.add(itemDaño);
+          break;
+        }
+        case "enemy": 
           const enemigonuevo = new Enemy(this, x, y, "enemy");
           this.enemigosGroup.add(enemigonuevo);
           break;
@@ -89,12 +148,19 @@ export default class NivelBase extends Phaser.Scene {
     this.physics.add.collider(this.NPC1, platformLayer);
     this.physics.add.collider(this.NPC2, platformLayer);
     this.physics.add.collider(this.NPC3, platformLayer);
+    this.physics.add.collider(this.enemigosGroup, platformLayer);
 
     this.physics.add.overlap(this.player, this.enemigosGroup, this.enemycollide, null, this);
     this.physics.add.collider(this.player, this.NPC1, this.handleNpcPush, null, this);
     this.physics.add.collider(this.player, this.NPC3, this.handleNpcPush, null, this);
     this.physics.add.collider(this.player, this.NPC2, this.handleNpcPush, null, this);
     this.physics.add.collider(this.player, this.door, this.enterdoor, null, this);
+    this.physics.add.overlap(this.player, this.itemPuntos, this.collectItem, null, this);
+    this.physics.add.overlap(this.player, this.itemDaño, this.hitBadCollectible, null, this);
+    this.physics.add.overlap(this.player, this.lava, this.hitLava, null, this);
+    this.physics.add.overlap(this.NPC1, this.lava, this.npcEnterLava, null, this);
+    this.physics.add.overlap(this.NPC2, this.lava, this.npcEnterLava, null, this);
+    this.physics.add.overlap(this.NPC3, this.lava, this.npcEnterLava, null, this);
 
     this.npcAlertGroupIndex = 0;
     this.time.addEvent({
@@ -156,7 +222,110 @@ export default class NivelBase extends Phaser.Scene {
     if (npc.texture && npc.texture.key === "NPC3" && !npc.collected) {
       npc.collected = true;
       this.inventario.items.push("NPC3");
-      this.score += 30;
+      if (this.addPoints) {
+        this.addPoints(30);
+      } else {
+        this.points += 30;
+      }
+      this.score = this.points;
+    }
+  }
+
+  collectItem(player, itemPuntos) {
+    if (!itemPuntos || !itemPuntos.active) {
+      return;
+    }
+
+    if (itemPuntos.disableBody) {
+      itemPuntos.disableBody(true, true);
+    } else if (itemPuntos.destroy) {
+      itemPuntos.destroy();
+    }
+
+    if (this.addPoints) {
+      this.addPoints(10);
+    } else {
+      this.points += 10;
+    }
+    this.score = this.points;
+  }
+
+  hitBadCollectible(player, itemDaño) {
+    if (!itemDaño || !itemDaño.active) {
+      return;
+    }
+
+    if (itemDaño.disableBody) {
+      itemDaño.disableBody(true, true);
+    } else if (itemDaño.destroy) {
+      itemDaño.destroy();
+    }
+
+    if (this.addPoints) {
+      this.addPoints(-5);
+    } else {
+      this.points = Math.max(0, (this.points || 0) - 5);
+    }
+
+    if (player && player.vida != null) {
+      player.vida = Math.max(0, player.vida - 1);
+    }
+
+    this.score = this.points;
+    if (this.updateHud) {
+      this.updateHud();
+    }
+
+    if (player && player.vida <= 0) {
+      this.scene.start("GameOverScene", {
+        score: this.points,
+        points: this.points,
+        savedPeopleTotal: this.savedPeopleTotal,
+      });
+      return;
+    }
+  }
+
+  hitLava(player, lava) {
+    if (player && player.vida != null) {
+      player.vida = 0;
+    }
+    if (this.addPoints) {
+      this.addPoints(-10);
+    } else {
+      this.points = Math.max(0, (this.points || 0) - 10);
+    }
+
+    if (this.updateHud) {
+      this.updateHud();
+    }
+
+    if (player && player.vida <= 0) {
+      this.scene.start("GameOverScene", {
+        score: this.points,
+        points: this.points,
+        savedPeopleTotal: this.savedPeopleTotal,
+      });
+    }
+  }
+
+  npcEnterLava(npc, lava) {
+    if (!npc || npc.inWater || !npc.active) return;
+
+    if (npc.disableBody) {
+      npc.disableBody(true, true);
+    } else if (npc.destroy) {
+      npc.destroy();
+    }
+
+    if (this.addPoints) {
+      this.addPoints(-10);
+    } else {
+      this.points = Math.max(0, (this.points || 0) - 10);
+    }
+    this.score = this.points;
+    if (this.updateHud) {
+      this.updateHud();
     }
   }
 
@@ -171,13 +340,35 @@ export default class NivelBase extends Phaser.Scene {
     }
 
     this.pushedToWaterCount = (this.pushedToWaterCount || 0) + 1;
+    this.savedPeopleTotal = (this.savedPeopleTotal || 0) + 1;
+    if (this.addPoints) {
+      this.addPoints(20);
+    } else {
+      this.points += 20;
+    }
+    this.score = this.points;
     if (this.updateHud) {
       this.updateHud();
     }
 
     if (this.pushedToWaterCount >= 4) {
       this.registry.set('score', this.score);
-      this.scene.start("Level2");
+
+      const currentLevel = this.sys?.settings?.key;
+      let nextScene = "Menu";
+      if (currentLevel === "Level1") {
+        nextScene = "Level2";
+      } else if (currentLevel === "Level2") {
+        nextScene = "Level3";
+      } else if (currentLevel === "Level3") {
+        nextScene = "VictoryScene";
+      }
+
+      this.scene.start(nextScene, {
+        score: this.points,
+        points: this.points,
+        savedPeopleTotal: this.savedPeopleTotal,
+      });
     }
   }
 
@@ -236,6 +427,11 @@ export default class NivelBase extends Phaser.Scene {
           const npcBounds = candidateNpc.getBounds();
           if (Phaser.Geom.Intersects.RectangleToRectangle(npcBounds, rayBounds)) {
             candidateNpc.destroy();
+            if (this.addPoints) {
+              this.addPoints(-10);
+            } else {
+              this.points = Math.max(0, (this.points || 0) - 10);
+            }
             this.check += 1
           }
         });
@@ -258,7 +454,21 @@ export default class NivelBase extends Phaser.Scene {
   }
 
   enemycollide(player, Enemy) {
-    this.player.vida -= 1;
-    Enemy.disableBody(true, true);
+    const now = this.time.now;
+    if (player.lastEnemyHitAt && now - player.lastEnemyHitAt < 500) {
+      return;
+    }
+    player.lastEnemyHitAt = now;
+
+    player.vida = Math.max(0, player.vida - 1);
+    if (player.vida <= 0) {
+      player.isDead = true;
+      this.scene.start("GameOverScene", {
+        score: this.points,
+        points: this.points,
+        savedPeopleTotal: this.savedPeopleTotal,
+      });
+      return;
+    }
   }
 }
