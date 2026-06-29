@@ -29,7 +29,7 @@ export function Interfaz(scene) {
     const lives = scene.player?.vida ?? 0;
 
     scene.Interfaz.setText(
-      `Personas salvadas: ${savedPeople}\nPuntos totales: ${points}\nTiempo restante: ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+      `Personas salvadas: ${savedPeople} | 4 \nPuntos totales: ${points}\nTiempo restante: ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
     );
     scene.livesText.setText(`Vidas: ${lives}`);
 

@@ -112,17 +112,17 @@ export default class NivelBase extends Phaser.Scene {
       const { x = 0, y = 0, name, type } = objData;
       switch (type) {
         case "NPC1": {
-          const npc = this.NPC1.create(x, y, "NPC1").setDepth(2);
+          const npc = this.NPC1.create(x, y, "NPC1").setDepth(2).setScale(1.5, 1.5);
           this.setupPushableNpc(npc);
           break;
         }
         case "NPC2": {
-          const npc = this.NPC2.create(x, y, "NPC2").setDepth(2);
+          const npc = this.NPC2.create(x, y, "NPC2").setDepth(2).setScale(1.5, 1.5);
           this.setupPushableNpc(npc);
           break;
         }
         case "NPC3": {
-          const npc = this.NPC3.create(x, y, "NPC3").setDepth(2);
+          const npc = this.NPC3.create(x, y, "NPC3").setDepth(2).setScale(1.5, 1.5);
           this.setupPushableNpc(npc);
           break;
         }
@@ -145,7 +145,7 @@ export default class NivelBase extends Phaser.Scene {
           break;
         }
         case "enemy": 
-          const enemigonuevo = new Enemy(this, x, y, "enemy");
+          const enemigonuevo = new Enemy(this, x, y, "enemy").setScale(1.5, 1.5);
           this.enemigosGroup.add(enemigonuevo);
           break;
       }
